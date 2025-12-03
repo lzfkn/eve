@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Calendar</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #fafafa;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 32px;
+            font-weight: 300;
+            color: #2c2c2c;
+            letter-spacing: 1px;
+        }
+
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .month-nav button {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .month-nav button:hover {
+            background: #f5f5f5;
+            border-color: #c0c0c0;
+        }
+
+        .month-display {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 20px;
+            font-weight: 400;
+            color: #2c2c2c;
+            min-width: 180px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .add-event-btn {
+            background: #b39ddb;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 0;
+            text-transform: uppercase;
+        }
+
+        .add-event-btn:hover {
+            background: #9575cd;
+        }
+
+        .calendar {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+        }
+
+        .weekday-header {
+            max-width: 1200px;
+            margin: 0 auto 10px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+        }
+
+        .weekday-name {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+            font-weight: 400;
+        }
+
+        .empty-day {
+            aspect-ratio: 1;
+        }
+
+        .day-card {
+            background: #fff;
+            aspect-ratio: 1;
+            perspective: 1000px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .event-tags {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            z-index: 3;
+            flex-wrap: wrap;
+        }
+
+        .event-tag {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .card-front.has-image .event-tags {
+            bottom: auto;
+            top: 8px;
+            right: 8px;
+            left: auto;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .day-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-front {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-front-content {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 2;
+        }
+
+        .card-front.has-image {
+            padding: 0;
+        }
+
+        .card-front-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .card-front-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            padding: 15px 12px 12px;
+            z-index: 2;
+        }
+
+        .card-event-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 14px;
+            font-weight: 400;
+            color: #fff;
+            line-height: 1.3;
+        }
+
+        .card-back {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            transform: rotateY(180deg);
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .event-carousel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .event-item {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .event-item.active {
+            display: flex;
+        }
+
+        .carousel-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .carousel-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            color: #666;
+            transition: color 0.2s;
+        }
+
+        .carousel-btn:hover {
+            color: #2c2c2c;
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .event-counter {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 1px;
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #b39ddb;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            font-size: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        .edit-btn:hover {
+            background: #9575cd;
+        }
+
+        .date-number {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            font-weight: 300;
+            color: #2c2c2c;
+            line-height: 1;
+        }
+
+        .card-front.has-image .date-number {
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .day-name {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+            font-weight: 400;
+        }
+
+        .card-front.has-image .day-name {
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .event-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #333;
+        }
+
+        .color-blue { background: #42a5f5; }
+        .color-red { background: #ef5350; }
+        .color-green { background: #66bb6a; }
+        .color-yellow { background: #ffee58; }
+        .color-orange { background: #ff7043; }
+        .color-purple { background: #ab47bc; }
+
+        .event-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #2c2c2c;
+            line-height: 1.4;
+        }
+
+        .event-description {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .event-poster {
+            width: 100%;
+            height: auto;
+            margin-top: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 25px;
+            color: #2c2c2c;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 400;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+            font-family: 'Montserrat', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #b39ddb;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            background: #f9f9f9;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid #2c2c2c;
+            background: #fff;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        button.primary {
+            background: #b39ddb;
+            color: #fff;
+            border-color: #b39ddb;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .calendar {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+            
+            .date-number {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Event Calendar</h1>
+        <div class="month-nav">
+            <button onclick="changeMonth(-1)">←</button>
+            <div class="month-display" id="monthDisplay"></div>
+            <button onclick="changeMonth(1)">→</button>
+        </div>
+        <button class="add-event-btn" onclick="openModal()">+ Add Event</button>
+    </div>
+
+    <div class="weekday-header" id="weekdayHeader"></div>
+    <div class="calendar" id="calendar"></div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2>Add Event</h2>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="eventDate" required>
+                    <input type="hidden" id="editEventIndex">
+                </div>
+                <div class="form-group">
+                    <label>Event Title</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="eventDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Dot Color</label>
+                    <div class="color-picker">
+                        <div class="color-option color-blue selected" data-color="#42a5f5" onclick="selectColor(this)"></div>
+                        <div class="color-option color-red" data-color="#ef5350" onclick="selectColor(this)"></div>
+                        <div class="color-option color-green" data-color="#66bb6a" onclick="selectColor(this)"></div>
+                        <div class="color-option color-yellow" data-color="#ffee58" onclick="selectColor(this)"></div>
+                        <div class="color-option color-orange" data-color="#ff7043" onclick="selectColor(this)"></div>
+                        <div class="color-option color-purple" data-color="#ab47bc" onclick="selectColor(this)"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Event Poster</label>
+                    <div class="file-input-wrapper">
+                        <label class="file-input-label" for="eventPoster">
+                            Choose Image
+                        </label>
+                        <input type="file" id="eventPoster" accept="image/*">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button type="button" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="primary">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const events = {};
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedColor = '#42a5f5';
+        let currentEventIndex = {};
+
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        function getDaysInMonth(month, year) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getFirstDayOfMonth(month, year) {
+            return new Date(year, month, 1).getDay();
+        }
+
+        function getDayOfWeek(day, month, year) {
+            return new Date(year, month, day).getDay();
+        }
+
+        function updateMonthDisplay() {
+            document.getElementById('monthDisplay').textContent = 
+                `${monthNames[currentMonth]} ${currentYear}`;
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateMonthDisplay();
+            renderCalendar();
+        }
+
+        function selectColor(element) {
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedColor = element.dataset.color;
+        }
+
+        function renderWeekdayHeader() {
+            const header = document.getElementById('weekdayHeader');
+            header.innerHTML = '';
+            dayNames.forEach(day => {
+                const div = document.createElement('div');
+                div.className = 'weekday-name';
+                div.textContent = day;
+                header.appendChild(div);
+            });
+        }
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            currentEventIndex = {};
+            
+            const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+            const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
+
+            // Add empty cells for days before the month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'empty-day';
+                calendar.appendChild(emptyDay);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = events[dateKey] || [];
+                const dayOfWeek = getDayOfWeek(day, currentMonth, currentYear);
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
+                dayCard.onclick = (e) => {
+                    if (!e.target.classList.contains('edit-btn')) {
+                        toggleCard(dayCard, dateKey);
+                    }
+                };
+
+                const cardInner = document.createElement('div');
+                cardInner.className = 'card-inner';
+
+                const cardFront = document.createElement('div');
+                cardFront.className = 'card-front';
+                
+                const firstEvent = dayEvents[0];
+                if (firstEvent && firstEvent.poster) {
+                    cardFront.classList.add('has-image');
+                    cardFront.innerHTML = `
+                        <img src="${firstEvent.poster}" class="card-front-image" alt="${firstEvent.title}">
+                        <div class="card-front-content">
+                            <div class="day-name">${dayNames[dayOfWeek]}</div>
+                            <div class="date-number">${day}</div>
+                        </div>
+                        <div class="card-front-overlay">
+                            <div class="card-event-title">${firstEvent.title}</div>
+                        </div>
+                    `;
+                } else if (firstEvent) {
+                    cardFront.innerHTML = `
+                        <div class="card-front-content">
+                            <div class="day-name">${dayNames[dayOfWeek]}</div>
+                            <div class="date-number">${day}</div>
+                            <div class="card-event-title" style="color: #2c2c2c; margin-top: 8px; font-size: 13px;">${firstEvent.title}</div>
+                        </div>
+                    `;
+                } else {
+                    cardFront.innerHTML = `
+                        <div class="card-front-content">
+                            <div class="day-name">${dayNames[dayOfWeek]}</div>
+                            <div class="date-number">${day}</div>
+                        </div>
+                    `;
+                }
+
+                // Add event tags
+                if (dayEvents.length > 0) {
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'event-tags';
+                    dayEvents.forEach(event => {
+                        const tag = document.createElement('div');
+                        tag.className = 'event-tag';
+                        tag.style.background = event.color;
+                        tagsDiv.appendChild(tag);
+                    });
+                    cardFront.appendChild(tagsDiv);
+                }
+
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-back';
+                
+                if (dayEvents.length > 0) {
+                    currentEventIndex[dateKey] = 0;
+                    const carouselHTML = `
+                        <div class="event-carousel">
+                            ${dayEvents.length > 1 ? `
+                                <div class="carousel-nav">
+                                    <button class="carousel-btn" onclick="navigateEvent(event, '${dateKey}', -1)">←</button>
+                                    <span class="event-counter">
+                                        <span id="counter-${dateKey}">1</span> / ${dayEvents.length}
+                                    </span>
+                                    <button class="carousel-btn" onclick="navigateEvent(event, '${dateKey}', 1)">→</button>
+                                </div>
+                            ` : ''}
+                            ${dayEvents.map((evt, idx) => `
+                                <div class="event-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                                    <button class="edit-btn" onclick="editEvent(event, '${dateKey}', ${idx})">Edit</button>
+                                    <div class="event-title">${evt.title}</div>
+                                    <div class="event-description">${evt.description || ''}</div>
+                                    ${evt.poster ? `<img src="${evt.poster}" class="event-poster" alt="Event poster">` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    cardBack.innerHTML = carouselHTML;
+                } else {
+                    cardBack.innerHTML = '<div class="event-description">No event scheduled</div>';
+                }
+
+                cardInner.appendChild(cardFront);
+                cardInner.appendChild(cardBack);
+                dayCard.appendChild(cardInner);
+                calendar.appendChild(dayCard);
+            }
+        }
+
+        function navigateEvent(e, dateKey, direction) {
+            e.stopPropagation();
+            const dayEvents = events[dateKey];
+            if (!dayEvents) return;
+
+            const currentIdx = currentEventIndex[dateKey];
+            let newIdx = currentIdx + direction;
+            
+            if (newIdx < 0) newIdx = dayEvents.length - 1;
+            if (newIdx >= dayEvents.length) newIdx = 0;
+
+            currentEventIndex[dateKey] = newIdx;
+
+            const card = e.target.closest('.card-back');
+            const items = card.querySelectorAll('.event-item');
+            items.forEach((item, idx) => {
+                item.classList.toggle('active', idx === newIdx);
+            });
+
+            const counter = document.getElementById(`counter-${dateKey}`);
+            if (counter) counter.textContent = newIdx + 1;
+        }
+
+        function editEvent(e, dateKey, index) {
+            e.stopPropagation();
+            const event = events[dateKey][index];
+            
+            document.getElementById('eventDate').value = dateKey;
+            document.getElementById('eventTitle').value = event.title;
+            document.getElementById('eventDescription').value = event.description || '';
+            document.getElementById('editEventIndex').value = index;
+            
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.color === event.color) {
+                    el.classList.add('selected');
+                }
+            });
+            selectedColor = event.color;
+            
+            openModal();
+        }
+
+        function toggleCard(card, dateKey) {
+            const isFlipped = card.classList.contains('flipped');
+            if (!isFlipped) {
+                currentEventIndex[dateKey] = 0;
+            }
+            card.classList.toggle('flipped');
+        }
+
+        function openModal() {
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('eventForm').reset();
+            document.getElementById('editEventIndex').value = '';
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector('.color-blue').classList.add('selected');
+            selectedColor = '#42a5f5';
+        }
+
+        document.getElementById('eventForm').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const date = document.getElementById('eventDate').value;
+            const title = document.getElementById('eventTitle').value;
+            const description = document.getElementById('eventDescription').value;
+            const posterFile = document.getElementById('eventPoster').files[0];
+            const editIndex = document.getElementById('editEventIndex').value;
+
+            let posterData = null;
+            if (posterFile) {
+                posterData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(posterFile);
+                });
+            } else if (editIndex !== '') {
+                // Keep existing poster when editing
+                posterData = events[date][parseInt(editIndex)].poster;
+            }
+
+            const eventData = {
+                title,
+                description,
+                poster: posterData,
+                color: selectedColor
+            };
+
+            if (!events[date]) {
+                events[date] = [];
+            }
+
+            if (editIndex !== '') {
+                // Update existing event
+                events[date][parseInt(editIndex)] = eventData;
+            } else {
+                // Add new event
+                events[date].push(eventData);
+            }
+
+            renderCalendar();
+            closeModal();
+        };
+
+        document.getElementById('eventPoster').onchange = function(e) {
+            const label = document.querySelector('.file-input-label');
+            if (e.target.files.length > 0) {
+                label.textContent = e.target.files[0].name;
+            } else {
+                label.textContent = 'Choose Image';
+            }
+        };
+
+        renderWeekdayHeader();
+        updateMonthDisplay();
+        renderCalendar();
+    </script>
+</body>
+</html>
